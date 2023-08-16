@@ -1,0 +1,38 @@
+trainstation:
+	lista med räls
+	
+
+räls
+	kapacitet
+	lista med tåg
+	när tågen är färdiga
+	hur många platser som frigörs härnäst
+
+tåg
+	storlek
+	hur lång tid
+
+
+
+
+
+Tåg skapas med viss storlek, tid och ska assignas till en räls.
+
+Rälsarna har en viss kapacitet, tåg är first in first out, bara tåget längst fram kan åka ut
+
+Tågen som kommer in kanske kan vänta och nästa tåg kan tas, men tågen skapas efter en viss tid. 
+tex: ett stort tåg skapas, får inte plats, det får vänta. Nästa tåg som skapas får plats och tar den platsen.
+
+
+En algoritm som bestämmer vilka tåg som åker var
+ML?
+Scheduling?
+
+Tåg som tar mindre tid ska vara längst fram
+Om det bakersta tåget på en räls blir klart samtidigt som det nya tåget är det bra
+
+Så många tåg som möjligt på så lite tid som möjligt?
+En bestämmd tid och så många tåg som möjligt?
+En bestämmd mängd tåg och så lite tid som möjligt?
+
+

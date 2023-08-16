@@ -1,0 +1,9 @@
+name = "fibonacci"
+description = "Shiny new project"
+version = "0.1.0-dev"
+
+authors = ["Oliver Lillberg"]
+maintainers = ["Oliver Lillberg <oliver.lillberg@combitech.com>"]
+maintainers-logins = ["github-xdezex"]
+
+executables = ["fibonacci"]
