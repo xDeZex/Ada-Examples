@@ -1,11 +1,11 @@
 name = "elevator"
-description = "Shiny new project"
+description = "An elevator that can be used to design an algorithm for putting every person in a building on the correct floor."
 version = "0.1.0-dev"
 
 authors = ["Oliver Lillberg"]
 maintainers = ["Oliver Lillberg <oliver.lillberg@combitech.com>"]
 maintainers-logins = ["github-xdezex"]
-project-files = ["elevator.gpr", "tests/tests.gpr"]
-executables = ["runner", "elevatorexample"]
+project-files = ["elevator.gpr", "tests/harness.gpr"]
+executables = ["harness", "elevatorexample"]
 [[depends-on]]
 aunit = "^23.0.0"
