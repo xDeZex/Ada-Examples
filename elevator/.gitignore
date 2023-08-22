@@ -1,4 +1,8 @@
 /obj/
 /bin/
 /alire/
-/config/
+/*/obj/
+/test/
+/testcal/
+/unittest/
+*.TMP

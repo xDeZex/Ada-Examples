@@ -1,7 +1,7 @@
 with Ada.Containers.Vectors;
-With Ada.Calendar; use Ada.Calendar;
+with Ada.Calendar; use Ada.Calendar;
 package Building is
-   subtype Floor_Range is Positive range Positive'First .. Positive'Last;
+   subtype Floor_Range is Positive range Positive'First .. 10;
    type People is record
       Floor_To_Exit_At : Floor_Range;
       Floor_To_Enter_At : Floor_Range;
@@ -12,33 +12,38 @@ package Building is
    Time_To_Enter : Duration := Time_Unit * 1;
    Time_To_Exit : Duration := Time_Unit * 1;
    Time_To_Move_A_Floor : Duration := Time_Unit * 3;
+   Max_People_On_Each_Floor : Positive := 10;
 
-   Top_Floor : Floor_Range := 10;
+   Top_Floor : Floor_Range := Floor_Range'Last;
+
+   type Floor_Array is array (Natural range <>) of Floor_Range;
 
    package People_Vectors is new Ada.Containers.Vectors
       (Index_Type   => Natural,
       Element_Type => People);
+   
+   type People_Outside_Elevator_Array is array (1 .. Top_Floor) of People_Vectors.Vector;
 
-   --  TODO: make people who call the elevator say which floor they are going to.
-   --  Array of containers to represent the floors, return arrays of which floor they are going to.
+   --  The declaration of the biggest "class". Notice how the variables are private and only available through the subprograms.
    protected type Elevator is
       function Which_Floor_Is_Elevator_On return Floor_Range;
       function How_Many_People_In_Elevator return Natural;
-      function How_Many_People_Going_To_Floor (Floor_In_Question : Floor_Range) return Natural;
+      function How_Many_People_Going_To_Floor_In_Elevator (Floor_In_Question : Floor_Range) return Natural;
+      function Where_People_Are_Going_From_Floor (From_Floor : Floor_Range) return Floor_Array;
       function How_Many_People_Waiting_On_Floor (Floor_In_Question : Floor_Range) return Natural;
       function Is_Moving return Boolean;
       function How_Many_People_Are_On_The_Correct_Floor return Natural;
       function How_Many_People_Are_On_The_Wrong_Floor return Natural;
       procedure Person_Leave_Elevator;
       procedure Person_Enter_Elevator;
-      procedure Add_Person (Person : People);
+      procedure Add_Person (Person : People; To_Floor : Floor_Range);
       procedure Print_Elevator;
       procedure Close_Elevator;
       entry Move_Elevator_To_Floor (Floor_Going_To : Floor_Range);
    private
       Moving : Boolean := False;
       People_In_Elevator : People_Vectors.Vector;
-      People_Outside_Elevator : People_Vectors.Vector;
+      People_Outside_Elevator : People_Outside_Elevator_Array;
       Floor : Floor_Range := 1;
       Started : Boolean := False;
       Ended : Boolean := False;
@@ -57,8 +62,7 @@ package Building is
    procedure Construct_Building_Manager (Manager : out Building_Manager_Access);
 
 private
-
-   procedure Add_People_To_Building (Manager : Building_Manager_Access);
+   procedure Add_People_To_Building (Manager : Building_Manager_Access; Seed : Integer := Integer'First);
    task type People_Mover (Elevator1 : Elevator_Access) is
       entry Move_People (Floor : Floor_Range);
    end People_Mover;

@@ -5,5 +5,7 @@ version = "0.1.0-dev"
 authors = ["Oliver Lillberg"]
 maintainers = ["Oliver Lillberg <oliver.lillberg@combitech.com>"]
 maintainers-logins = ["github-xdezex"]
-
-executables = ["elevatorexample"]
+project-files = ["elevator.gpr", "tests/tests.gpr"]
+executables = ["runner", "elevatorexample"]
+[[depends-on]]
+aunit = "^23.0.0"

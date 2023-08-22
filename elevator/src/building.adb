@@ -17,6 +17,7 @@ package body Building is
       --  Will lock the elevator to moving during
       --  The compiler gives a warning when you use a delay in a protected,
       --  but I don't know how to move it without making the structure worse.
+      --  This could be changed to a procedure, but you lose the blocking.
       entry Move_Elevator_To_Floor (Floor_Going_To : Floor_Range) when not Moving is
       begin
          Put_Line ("Started Moving");
@@ -30,7 +31,7 @@ package body Building is
          Moving := False;
       end Move_Elevator_To_Floor;
 
-      function How_Many_People_Going_To_Floor (Floor_In_Question : Floor_Range) return Natural is
+      function How_Many_People_Going_To_Floor_In_Elevator (Floor_In_Question : Floor_Range) return Natural is
       begin
          declare
             Number_Of_People_Going_To_Floor : Natural := 0;
@@ -42,15 +43,25 @@ package body Building is
             end loop;
             return Number_Of_People_Going_To_Floor;
          end;
-      end How_Many_People_Going_To_Floor;
+      end How_Many_People_Going_To_Floor_In_Elevator;
+
+      function Where_People_Are_Going_From_Floor (From_Floor : Floor_Range) return Floor_Array is
+         Return_Array : Floor_Array (0 .. Integer (People_Outside_Elevator (From_Floor).Length) - 1);
+      begin
+         for I in Return_Array'Range loop
+            Return_Array (I) := People_Outside_Elevator (From_Floor) (I).Floor_To_Exit_At;
+         end loop;
+         return Return_Array;
+      end Where_People_Are_Going_From_Floor;
+
 
       function How_Many_People_Waiting_On_Floor (Floor_In_Question : Floor_Range) return Natural is
       begin
          declare
             Number_Of_People_Waiting_On_Floor : Natural := 0;
          begin
-            for Person of People_Outside_Elevator loop
-               if Person.Floor_To_Enter_At = Floor_In_Question and then Person.Floor_At = Floor_In_Question then
+            for Person of People_Outside_Elevator (Floor_In_Question) loop
+               if Person.Floor_To_Enter_At = Floor_In_Question then
                   Number_Of_People_Waiting_On_Floor := Number_Of_People_Waiting_On_Floor + 1;
                end if;
             end loop;
@@ -63,21 +74,22 @@ package body Building is
          return Moving;
       end Is_Moving;
 
-      procedure Add_Person (Person : People) is
+      procedure Add_Person (Person : People; To_Floor : Floor_Range) is
       begin
-         People_Outside_Elevator.Append (Person);
+         People_Outside_Elevator (To_Floor).Append (Person);
       end Add_Person;
 
+      --  If there is at least one person on the elevator that exits on the current floor, then one person will exit
       procedure Person_Leave_Elevator is
       begin
          if not People_In_Elevator.Is_Empty then
-            for i in 0 .. Integer (People_In_Elevator.Length) loop
+            for i in 0 .. Integer (People_In_Elevator.Length) - 1 loop
                if People_In_Elevator (i).Floor_To_Exit_At = Floor then
                   declare
                      temp : People := People_In_Elevator (i);
                   begin
                      temp.Floor_At := Floor;
-                     People_Outside_Elevator.Append (temp);
+                     People_Outside_Elevator (Floor).Append (temp);
                      People_In_Elevator.Delete (i);
                      Put_Line ("Person exited to floor:" & Floor'Image);
                      exit;
@@ -87,13 +99,14 @@ package body Building is
          end if;
       end Person_Leave_Elevator;
 
+      --  If there is at least one person on the elevator that enters on the current floor, then one person will enter
       procedure Person_Enter_Elevator  is
       begin
-         if not People_Outside_Elevator.Is_Empty then
-            for i in 0 .. Integer (People_Outside_Elevator.Length) loop
-               if People_Outside_Elevator (i).Floor_To_Enter_At = Floor then
-                  People_In_Elevator.Append (People_Outside_Elevator (i));
-                  People_Outside_Elevator.Delete (i);
+         if not People_Outside_Elevator (Floor).Is_Empty then
+            for i in 0 .. Integer (People_Outside_Elevator (Floor).Length) - 1 loop
+               if People_Outside_Elevator (Floor) (i).Floor_To_Enter_At = Floor then
+                  People_In_Elevator.Append (People_Outside_Elevator (Floor) (i));
+                  People_Outside_Elevator (Floor).Delete (i);
                   Put_Line ("Person entered from floor:" & Floor'Image);
                   exit;
                end if;
@@ -106,10 +119,12 @@ package body Building is
          declare
             Number_Of_People_On_The_Correct_Floor : Natural := 0;
          begin
-            for Person of People_Outside_Elevator loop
-               if Person.Floor_To_Exit_At = Person.Floor_At then
-                  Number_Of_People_On_The_Correct_Floor := Number_Of_People_On_The_Correct_Floor + 1;
-               end if;
+            for F in Floor_Range loop
+               for Person of People_Outside_Elevator (F) loop
+                  if Person.Floor_To_Exit_At = Person.Floor_At then
+                     Number_Of_People_On_The_Correct_Floor := Number_Of_People_On_The_Correct_Floor + 1;
+                  end if;
+               end loop;
             end loop;
             return Number_Of_People_On_The_Correct_Floor;
          end;
@@ -120,10 +135,12 @@ package body Building is
          declare
             Number_Of_People_On_The_Wrong_Floor : Natural := 0;
          begin
-            for Person of People_Outside_Elevator loop
-               if Person.Floor_To_Exit_At /= Person.Floor_At then
-                  Number_Of_People_On_The_Wrong_Floor := Number_Of_People_On_The_Wrong_Floor + 1;
-               end if;
+            for F in Floor_Range loop
+               for Person of People_Outside_Elevator (F) loop
+                  if Person.Floor_To_Exit_At /= Person.Floor_At then
+                     Number_Of_People_On_The_Wrong_Floor := Number_Of_People_On_The_Wrong_Floor + 1;
+                  end if;
+               end loop;
             end loop;
             return Number_Of_People_On_The_Wrong_Floor;
          end;
@@ -148,7 +165,7 @@ package body Building is
 
    end Elevator;
 
-   procedure Add_People_To_Building (Manager : Building_Manager_Access) is
+   procedure Add_People_To_Building (Manager : Building_Manager_Access; Seed : Integer := Integer'First) is
       subtype Floor_Range_Random is Floor_Range range Floor_Range'First .. Top_Floor;
       subtype People_On_Floor_Range_Random is Natural range 0 .. 10;
       package Random_Floor is new Ada.Numerics.Discrete_Random (Floor_Range_Random);
@@ -156,31 +173,35 @@ package body Building is
       Seed_People_On_Floor : Random_People_On_Floor.Generator;
       Random_Result_People_On_Floor  : People_On_Floor_Range_Random;
       Seed_Floors : Random_Floor.Generator;
-      Random_Result_Floors  : Floor_Range_Random;
    begin
-      Random_People_On_Floor.Reset (Seed_People_On_Floor);
-      Random_Floor.Reset (Seed_Floors, 1);
+      if Seed = Integer'First then
+         Random_People_On_Floor.Reset (Seed_People_On_Floor);
+         Random_Floor.Reset (Seed_Floors);
+      else 
+         Random_People_On_Floor.Reset (Seed_People_On_Floor, Seed);
+         Random_Floor.Reset (Seed_Floors, Seed);
+      end if;
       for Floor in Floor_Range'First .. Top_Floor loop
          Random_Result_People_On_Floor := Random_People_On_Floor.Random (Seed_People_On_Floor);
          for Person_Index in 1 .. Random_Result_People_On_Floor loop
             declare
-               Random_Result_Floor_Enter_At : Floor_Range_Random := Random_Floor.Random (Seed_Floors);
+               Random_Result_Floor_Enter_At : constant Floor_Range_Random := Random_Floor.Random (Seed_Floors);
                Random_Result_Floor_Exit_At : Floor_Range_Random := Random_Floor.Random (Seed_Floors);
             begin
                while Random_Result_Floor_Enter_At = Random_Result_Floor_Exit_At loop
                   Random_Result_Floor_Exit_At := Random_Floor.Random (Seed_Floors);
                end loop;
-               declare 
-                  Person : People := (Random_Result_Floor_Exit_At, Random_Result_Floor_Enter_At, Random_Result_Floor_Enter_At);
+               declare
+                  Person : constant People := (Random_Result_Floor_Exit_At, Random_Result_Floor_Enter_At, Random_Result_Floor_Enter_At);
                begin
-                  Manager.Elevator1.Add_Person (Person);
+                  Manager.Elevator1.Add_Person (Person, Random_Result_Floor_Enter_At);
                end;
             end;
          end loop;
       end loop;
    end Add_People_To_Building;
 
-   --  A Constructor. The variable you enter as a parameter when calling the constructor will be initialized.
+   --  A Constructor. The variable (Building_Manager) you enter as a parameter when calling the constructor will be initialized.
    procedure Construct_Building_Manager (Manager : out Building_Manager_Access) is
       Elevator1 : constant Elevator_Access := new Elevator;
       Manager1 : constant Building_Manager_Access := new Building_Manager (1, Elevator1);
@@ -218,6 +239,9 @@ package body Building is
       end loop;
    end Building_Manager;
 
+   --  A task which lets people exit and enter the elevator.
+   --  It doesn't block, as the delays are after, outside, the accept block.
+   --  If done, it will exit, so it doesn't run forever, and it's to be entered after the elevator arrives at a floor.
    task body People_Mover is
       Current_Floor : Floor_Range;
 
@@ -225,11 +249,13 @@ package body Building is
       begin
          Put_Line ("People exiting on floor:" & Current_Floor'Image);
          loop
+            --  Ada has the ability to calculate one boolean before the other in an "or" or "and" statement.
+            --  This is done with "or else" or "and else"
             if Elevator1.Which_Floor_Is_Elevator_On /= Current_Floor or else Elevator1.Is_Moving then
                Put_Line ("Not all people exited on floor:" & Current_Floor'Image);
                exit;
             end if;
-            if Elevator1.How_Many_People_Going_To_Floor (Current_Floor) /= 0 then
+            if Elevator1.How_Many_People_Going_To_Floor_In_Elevator (Current_Floor) /= 0 then
                Elevator1.Person_Leave_Elevator;
             else
                Put_Line ("All people exited on floor:" & Current_Floor'Image);
