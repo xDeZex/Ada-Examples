@@ -1,6 +1,6 @@
 with AUnit.Simple_Test_Cases; use AUnit.Simple_Test_Cases;
 with Building.Tests;
-package body Elevator_Suite is
+package body Building_Suite is
 
    function Suite return Access_Test_Suite is
       Ret : constant Access_Test_Suite := new Test_Suite;
@@ -9,4 +9,4 @@ package body Elevator_Suite is
       return Ret;
    end Suite;
 
-end Elevator_Suite;
+end Building_Suite;

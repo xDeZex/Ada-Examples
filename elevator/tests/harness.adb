@@ -1,6 +1,6 @@
 with AUnit.Reporter.Text;
 with AUnit.Run;
-with Elevator_Suite; use Elevator_Suite;
+with Building_Suite; use Building_Suite;
 
 procedure Harness is
    procedure Runner is new AUnit.Run.Test_Runner (Suite);

@@ -1,5 +1,5 @@
 name = "elevator"
-description = "An elevator that can be used to design an algorithm for putting every person in a building on the correct floor."
+description = "An elevator for teaching"
 version = "0.1.0-dev"
 
 authors = ["Oliver Lillberg"]
