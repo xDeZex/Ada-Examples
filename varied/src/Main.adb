@@ -137,6 +137,13 @@ begin
    Y := 2024;
    Print (Date_toString (today));
 
+   Print ("declare example");
+   declare
+      text : String := "This is a string declared during runtime";
+   begin
+      Print (text);
+   end;
+
    begin
       Oliver_Birthday.Day := 41;
       exception
