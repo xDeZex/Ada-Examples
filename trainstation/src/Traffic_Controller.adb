@@ -29,14 +29,13 @@ package body Traffic_Controller is
          or 
             terminate;
          end select;
-         
       end loop;
-      
    end Add_Train;
 
    task body Controller is
       aTrain_Task : Train_Task_Access;
       Trains_To_Be_Deleted : Train_Vectors.Vector;
+
       procedure Assign_Train (aTrack : Track_Access; aTrain : Train) is
       begin
          if aTrack = null then
@@ -47,6 +46,7 @@ package body Traffic_Controller is
          aTrain_Task := new Train_Task (aTrain.ID, aTrain.Size, aTrain.Clear_Time, aTrack);
          Trains_To_Be_Deleted.Append (aTrain);
       end Assign_Train;
+      
       Number_Of_Added_Trains : Integer := 0;
 
       function Chosen_Track (aTrain : Train) return Track_Access is
@@ -158,9 +158,7 @@ package body Traffic_Controller is
 
    task body Train_Task is
    begin
-      --Put_Line (Clear_Time'Image & " " & ID'Image);
       delay Duration (Clear_Time) / 1000.0;
-      --Put_Line ("Done: " & ID'Image & " " & Clear_Time'Image);
       My_Track.Clear_Train (ID, Size);
    end Train_Task;
 
@@ -169,6 +167,7 @@ package body Traffic_Controller is
       begin
          Put_Line (ID'Image & ": " & Trains'Image & " " & Image (Last_Clear_Time, True) & " Now: " & Image (Clock, True));
       end Show_Track;
+
       entry Assign_Train (Train_ID : Integer; Train_Size : Integer; Clear_Time : Integer) when Size /= Filled is
       begin
          Trains.Append (Train_ID);

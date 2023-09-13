@@ -6,8 +6,6 @@ package Traffic_Controller is
    (Index_Type   => Natural,
    Element_Type => Natural);
 
-   
-
    protected type Track (ID : Integer) is
       entry Assign_Train (Train_ID : Integer; Train_Size : Integer; Clear_Time : Integer);
       entry Clear_Train (Train_ID : Integer; Train_Size : Integer);
@@ -15,7 +13,6 @@ package Traffic_Controller is
       procedure Show_Track;
       function Is_Done return Boolean;
       function When_Last_Clear_Time return Time;
-      --  entry Wait_For_Train;
    private
       Last_Clear_Time : Time := Clock;
       Trains : Integer_Vectors.Vector;

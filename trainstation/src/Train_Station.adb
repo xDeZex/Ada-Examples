@@ -8,11 +8,9 @@ with Ada.Calendar.Formatting;
 use  Ada.Calendar.Formatting;
 
 procedure Train_Station is
-   New_Train : Train;
    New_Track1 : Track_Access := new Track (1);
    New_Track2 : Track_Access := new Track (2);
    New_Track3 : Track_Access := new Track (3);
-   Assigned : Boolean;
 
    subtype Custom is Integer range 2000 .. 8000;
    package Rand_Custom is new Ada.Numerics.Discrete_Random (Custom);
