@@ -38,6 +38,7 @@ abstract project Elevator_Config is
            ,"-gnatyS" -- Check no statements after THEN/ELSE
            ,"-gnatyt" -- Check token spacing
            ,"-gnatyx" -- Check extra parentheses
+           ,"-gnat2022"
           );
 
    type Build_Profile_Kind is ("release", "validation", "development");

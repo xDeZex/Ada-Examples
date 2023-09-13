@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Numerics.Discrete_Random;
+with Log; use Log;
 package body Building is
    protected body Elevator is
 
@@ -20,13 +21,14 @@ package body Building is
       --  This could be changed to a procedure, but you lose the blocking.
       entry Move_Elevator_To_Floor (Floor_Going_To : Floor_Range) when not Moving is
       begin
-         Put_Line ("Started Moving");
+         Print (Is_Printing, "Started Moving");
          if not Started then
             Started := True;
             Start_Time := Clock;
          end if; 
          Moving := True;
          delay abs (Floor - Floor_Going_To) * Time_To_Move_A_Floor;
+         Used_Time_Units := Used_Time_Units + Natural (abs (Floor - Floor_Going_To) * 3);
          Floor := Floor_Going_To;
          Moving := False;
       end Move_Elevator_To_Floor;
@@ -54,6 +56,14 @@ package body Building is
          return Return_Array;
       end Where_People_Are_Going_From_Floor;
 
+      function Where_People_Are_Going_In_Elevator return Floor_Array is
+         Return_Array : Floor_Array (0 .. Integer (People_In_Elevator.Length) - 1);
+      begin
+         for I in Return_Array'Range loop
+            Return_Array (I) := People_In_Elevator (I).Floor_To_Exit_At;
+         end loop;
+         return Return_Array;
+      end Where_People_Are_Going_In_Elevator;
 
       function How_Many_People_Waiting_On_Floor (Floor_In_Question : Floor_Range) return Natural is
       begin
@@ -91,7 +101,7 @@ package body Building is
                      temp.Floor_At := Floor;
                      People_Outside_Elevator (Floor).Append (temp);
                      People_In_Elevator.Delete (i);
-                     Put_Line ("Person exited to floor:" & Floor'Image);
+                     Print (Is_Printing, "Person exited to floor:" & Floor'Image);
                      exit;
                   end;
                end if;
@@ -107,7 +117,7 @@ package body Building is
                if People_Outside_Elevator (Floor) (i).Floor_To_Enter_At = Floor then
                   People_In_Elevator.Append (People_Outside_Elevator (Floor) (i));
                   People_Outside_Elevator (Floor).Delete (i);
-                  Put_Line ("Person entered from floor:" & Floor'Image);
+                  Print (Is_Printing, "Person entered from floor:" & Floor'Image);
                   exit;
                end if;
             end loop;
@@ -148,11 +158,12 @@ package body Building is
 
       procedure Print_Elevator is
       begin
-         Put_Line ("People in Elevator:" & Elevator.How_Many_People_In_Elevator'Image);
-         Put_Line ("People outside Elevator correctly:" & Elevator.How_Many_People_Are_On_The_Correct_Floor'Image);
-         Put_Line ("People outside Elevator incorrectly:" & Elevator.How_Many_People_Are_On_The_Wrong_Floor'Image);
+         Print (True, "People in Elevator:" & Elevator.How_Many_People_In_Elevator'Image);
+         Print (True, "People outside Elevator correctly:" & Elevator.How_Many_People_Are_On_The_Correct_Floor'Image);
+         Print (True, "People outside Elevator incorrectly:" & Elevator.How_Many_People_Are_On_The_Wrong_Floor'Image);
          if Ended then
-            Put_Line ("Time taken in Time Units:" & Duration'Image ((End_Time - Start_Time) / Time_Unit));
+            Print (True, "Total time taken in Time Units:" & Duration'Image ((End_Time - Start_Time) / Time_Unit));
+            Print (True, "Time taken for elevator in Time Units:" & Used_Time_Units'Image);
          end if;
       end Print_Elevator;
 
@@ -162,7 +173,6 @@ package body Building is
          End_Time := Clock;
          Ended := True;
       end Close_Elevator;
-
    end Elevator;
 
    procedure Add_People_To_Building (Manager : Building_Manager_Access; Seed : Integer := Integer'First) is
@@ -194,7 +204,7 @@ package body Building is
                declare
                   Person : constant People := (Random_Result_Floor_Exit_At, Random_Result_Floor_Enter_At, Random_Result_Floor_Enter_At);
                begin
-                  Manager.Elevator1.Add_Person (Person, Random_Result_Floor_Enter_At);
+                  Manager.Elevator.Add_Person (Person, Random_Result_Floor_Enter_At);
                end;
             end;
          end loop;
@@ -202,20 +212,23 @@ package body Building is
    end Add_People_To_Building;
 
    --  A Constructor. The variable (Building_Manager) you enter as a parameter when calling the constructor will be initialized.
-   procedure Construct_Building_Manager (Manager : out Building_Manager_Access) is
-      Elevator1 : constant Elevator_Access := new Elevator;
-      Manager1 : constant Building_Manager_Access := new Building_Manager (1, Elevator1);
+   procedure Construct_Building_Manager (Manager : out Building_Manager_Access; Seed : Integer := Integer'First) is
+      Elevator : constant Elevator_Access := new Building.Elevator;
+      Manager1 : constant Building_Manager_Access := new Building_Manager (Elevator);
    begin
-      Add_People_To_Building (Manager1);
+      Time_To_Enter := Time_Unit * 1;
+      Time_To_Exit := Time_Unit * 1;
+      Time_To_Move_A_Floor := Time_Unit * 3;
+      Add_People_To_Building (Manager1, Seed);
       Manager := Manager1;
    end Construct_Building_Manager;
 
    task body Building_Manager is
-      People_Mover1 : constant People_Mover_Access := new People_Mover (Elevator1);
+      People_Mover1 : constant People_Mover_Access := new People_Mover (Elevator);
       procedure Move_Elevator_To_Floor (Floor_Going_To : Floor_Range) is
       begin
-         Elevator1.Move_Elevator_To_Floor (Floor_Going_To);
-         Put_Line ("Arrived at floor:" & Floor_Going_To'Image);
+         Elevator.Move_Elevator_To_Floor (Floor_Going_To);
+         Print (Is_Printing, "Arrived at floor:" & Floor_Going_To'Image);
          People_Mover1.Move_People (Floor_Going_To);
       end Move_Elevator_To_Floor;
    begin
@@ -228,10 +241,10 @@ package body Building is
             accept Print_Elevator do
                null;
             end Print_Elevator;
-            Elevator1.Print_Elevator;
+            Elevator.Print_Elevator;
          or
             accept Close_Elevator do
-               Elevator1.Close_Elevator;
+               Elevator.Close_Elevator;
             end Close_Elevator;
          or
             terminate;
@@ -247,39 +260,41 @@ package body Building is
 
       procedure Let_People_Exit_Elevator is
       begin
-         Put_Line ("People exiting on floor:" & Current_Floor'Image);
+         Print (Is_Printing, "People exiting on floor:" & Current_Floor'Image);
          loop
+            delay Time_To_Exit;
+            Used_Time_Units := Used_Time_Units + 1;
             --  Ada has the ability to calculate one boolean before the other in an "or" or "and" statement.
             --  This is done with "or else" or "and else"
-            if Elevator1.Which_Floor_Is_Elevator_On /= Current_Floor or else Elevator1.Is_Moving then
-               Put_Line ("Not all people exited on floor:" & Current_Floor'Image);
+            if Elevator.Which_Floor_Is_Elevator_On /= Current_Floor or else Elevator.Is_Moving then
+               Print (Is_Printing, "Not all people exited on floor:" & Current_Floor'Image);
                exit;
             end if;
-            if Elevator1.How_Many_People_Going_To_Floor_In_Elevator (Current_Floor) /= 0 then
-               Elevator1.Person_Leave_Elevator;
+            if Elevator.How_Many_People_Going_To_Floor_In_Elevator (Current_Floor) /= 0 then
+               Elevator.Person_Leave_Elevator;
             else
-               Put_Line ("All people exited on floor:" & Current_Floor'Image);
+               Print (Is_Printing, "All people exited on floor:" & Current_Floor'Image);
                exit;
             end if;
-            delay Time_To_Exit;
          end loop;
       end Let_People_Exit_Elevator;
 
       procedure Let_People_Enter_Elevator is
       begin
-         Put_Line ("People entering on floor: " & Current_Floor'Image);
+         Print (Is_Printing, "People entering on floor: " & Current_Floor'Image);
          loop
-            if Elevator1.Which_Floor_Is_Elevator_On /= Current_Floor or else Elevator1.Is_Moving then
-               Put_Line ("Not all people entered on floor:" & Current_Floor'Image);
-               exit;
-            end if;
-            if Elevator1.How_Many_People_Waiting_On_Floor (Current_Floor) /= 0 then
-               Elevator1.Person_Enter_Elevator;
-            else
-               Put_Line ("All people entered on floor:" & Current_Floor'Image);
-               exit;
-            end if;
             delay Time_To_Enter;
+            Used_Time_Units := Used_Time_Units + 1;
+            if Elevator.Which_Floor_Is_Elevator_On /= Current_Floor or else Elevator.Is_Moving then
+               Print (Is_Printing, "Not all people entered on floor:" & Current_Floor'Image);
+               exit;
+            end if;
+            if Elevator.How_Many_People_Waiting_On_Floor (Current_Floor) /= 0 then
+               Elevator.Person_Enter_Elevator;
+            else
+               Print (Is_Printing, "All people entered on floor:" & Current_Floor'Image);
+               exit;
+            end if;
          end loop;
       end Let_People_Enter_Elevator;
 
@@ -297,4 +312,14 @@ package body Building is
          end select;
       end loop;
    end People_Mover;
+
+   procedure Do_Not_Print is
+   begin
+      Is_Printing := False;
+   end Do_Not_Print;
+
+   procedure Do_Print is 
+   begin
+      Is_Printing := True;
+   end Do_Print;
 end Building;

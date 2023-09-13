@@ -8,7 +8,7 @@ package Building is
       Floor_At : Floor_Range;
    end record;
 
-   Time_Unit : Duration := 0.1;
+   Time_Unit : Duration := Duration (0.01);
    Time_To_Enter : Duration := Time_Unit * 1;
    Time_To_Exit : Duration := Time_Unit * 1;
    Time_To_Move_A_Floor : Duration := Time_Unit * 3;
@@ -30,6 +30,7 @@ package Building is
       function How_Many_People_In_Elevator return Natural;
       function How_Many_People_Going_To_Floor_In_Elevator (Floor_In_Question : Floor_Range) return Natural;
       function Where_People_Are_Going_From_Floor (From_Floor : Floor_Range) return Floor_Array;
+      function Where_People_Are_Going_In_Elevator return Floor_Array;
       function How_Many_People_Waiting_On_Floor (Floor_In_Question : Floor_Range) return Natural;
       function Is_Moving return Boolean;
       function How_Many_People_Are_On_The_Correct_Floor return Natural;
@@ -52,18 +53,23 @@ package Building is
    end Elevator;
    type Elevator_Access is access all Elevator;
 
-   task type Building_Manager (Number_Of_Floors : Floor_Range; Elevator1 : Elevator_Access) is
+   task type Building_Manager (Elevator : Elevator_Access) is
       entry Go_To_Floor (Floor_Going_To : Floor_Range);
       entry Print_Elevator;
       entry Close_Elevator;
    end Building_Manager;
    type Building_Manager_Access is access all Building_Manager;
 
-   procedure Construct_Building_Manager (Manager : out Building_Manager_Access);
+   procedure Construct_Building_Manager (Manager : out Building_Manager_Access; Seed : Integer := Integer'First);
 
+   procedure Do_Not_Print;
+   procedure Do_Print;
+
+   Used_Time_Units : Natural := 0;
 private
+   Is_Printing : Boolean := False;
    procedure Add_People_To_Building (Manager : Building_Manager_Access; Seed : Integer := Integer'First);
-   task type People_Mover (Elevator1 : Elevator_Access) is
+   task type People_Mover (Elevator : Elevator_Access) is
       entry Move_People (Floor : Floor_Range);
    end People_Mover;
    type People_Mover_Access is access all People_Mover;
